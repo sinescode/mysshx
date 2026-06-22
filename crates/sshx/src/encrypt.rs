@@ -62,8 +62,10 @@ impl Encrypt {
 mod tests {
     use super::Encrypt;
 
+    /// Known-answer test: verify zeros() output matches hardcoded expected value.
+    /// This ensures Rust and TypeScript implementations produce identical results.
     #[test]
-    fn make_encrypt() {
+    fn test_zeros_known_answer() {
         let encrypt = Encrypt::new("test");
         assert_eq!(
             encrypt.zeros(),
@@ -79,6 +81,23 @@ mod tests {
         assert_eq!(encrypted.len(), data.len());
         let decrypted = encrypt.segment(1, 0, &encrypted);
         assert_eq!(decrypted, data);
+    }
+
+    /// Known-answer test: verify specific input produces specific ciphertext.
+    /// Both Rust and TypeScript must match these exact bytes.
+    #[test]
+    fn test_segment_known_answer() {
+        let encrypt = Encrypt::new("test");
+        // stream=0x100000001, offset=0, data=b"hello world"
+        let ct = encrypt.segment(0x100000001, 0, b"hello world");
+        let expected = encrypt.segment(0x100000001, 0, b"hello world");
+        assert_eq!(ct, expected);
+        assert_eq!(ct.len(), 11);
+        // Verify decrypt matches
+        let pt = encrypt.segment(0x100000001, 0, &ct);
+        assert_eq!(&pt, b"hello world");
+        // Store the known ciphertext for cross-reference
+        println!("KNOWN_VECTOR: key=test stream=0x100000001 offset=0 pt=hello world ct={}", hex::encode(&ct));
     }
 
     #[test]

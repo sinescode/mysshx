@@ -1,0 +1,36 @@
+name: sshx
+description: "Production-ready sshx deployment with Redis"
+services:
+  sshx:
+    build: .
+    ports:
+      - "80:8051"
+    environment:
+      - SSHX_SECRET=${SSHX_SECRET:-}
+      - SSHX_REDIS_URL=redis://redis:6379
+      - RUST_LOG=${RUST_LOG:-info}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8051/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis_data:

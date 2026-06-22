@@ -24,8 +24,13 @@ pub fn app() -> Router<Arc<ServerState>> {
         .fallback(root_spa);
 
     Router::new()
+        .route("/health", axum::routing::get(health_check))
         .nest("/api", backend())
         .fallback_service(get_service(static_files))
+}
+
+async fn health_check() -> &'static str {
+    "ok"
 }
 
 /// Routes for the backend web API server.
