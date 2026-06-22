@@ -246,6 +246,41 @@ async fn handle_socket(socket: &mut WebSocket, session: Arc<Session>) -> Result<
             WsClient::Ping(ts) => {
                 send(socket, WsServer::Pong(ts)).await?;
             }
+            WsClient::FileUpload(name, size, mime) => {
+                if let Err(e) = session.check_write_permission(user_id) {
+                    send(socket, WsServer::Error(e.to_string())).await?;
+                    continue;
+                }
+                let file_id = session.counter().next_uid();
+                let user_name = session
+                    .list_users()
+                    .iter()
+                    .find(|(id, _)| *id == user_id)
+                    .map(|(_, u)| u.name.clone())
+                    .unwrap_or_default();
+                session.start_file_upload(file_id, name, size, mime, user_id, user_name)?;
+            }
+            WsClient::FileChunk(id, idx, data) => {
+                if let Err(e) = session.check_write_permission(user_id) {
+                    send(socket, WsServer::Error(e.to_string())).await?;
+                    continue;
+                }
+                session.add_file_chunk(id, idx, data)?;
+            }
+            WsClient::FileFinished(id, success) => {
+                session.finish_file_upload(id, success)?;
+            }
+            WsClient::FileDownload(id) => {
+                if let Some(meta) = session.file_meta(id) {
+                    send(socket, WsServer::FileOffer(meta)).await?;
+                    if let Some(chunks) = session.file_chunks(id) {
+                        for (i, chunk) in chunks.iter().enumerate() {
+                            send(socket, WsServer::FileChunk(id, i as u64, chunk.clone())).await?;
+                        }
+                        send(socket, WsServer::FileDone(id, true)).await?;
+                    }
+                }
+            }
         }
     }
     Ok(())

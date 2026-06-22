@@ -43,6 +43,24 @@ pub struct WsUser {
     pub can_write: bool,
 }
 
+/// Metadata about a file being transferred.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FileMeta {
+    /// Unique file transfer ID.
+    pub id: Uid,
+    /// Original filename.
+    pub name: String,
+    /// File size in bytes.
+    pub size: u64,
+    /// MIME type, if known.
+    pub mime: Option<String>,
+    /// Uploading user's ID.
+    pub uploader: Uid,
+    /// Uploading user's name.
+    pub uploader_name: String,
+}
+
 /// A real-time message sent from the server over WebSocket.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -65,6 +83,12 @@ pub enum WsServer {
     ShellLatency(u64),
     /// Echo back a timestamp, for the the client's own latency measurement.
     Pong(u64),
+    /// Broadcast a new file transfer to all users in the session.
+    FileOffer(FileMeta),
+    /// A chunk of file data, addressed by file transfer ID and chunk index.
+    FileChunk(Uid, u64, Bytes),
+    /// A file transfer was completed or cancelled.
+    FileDone(Uid, bool),
     /// Alert the client of an application error.
     Error(String),
 }
@@ -96,4 +120,12 @@ pub enum WsClient {
     Chat(String),
     /// Send a ping to the server, for latency measurement.
     Ping(u64),
+    /// Initiate a file upload with metadata.
+    FileUpload(String, u64, Option<String>),
+    /// Send a chunk of file data during an upload.
+    FileChunk(Uid, u64, Bytes),
+    /// Complete or cancel a file upload.
+    FileFinished(Uid, bool),
+    /// Request to download a file by its transfer ID.
+    FileDownload(Uid),
 }

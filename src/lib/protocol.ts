@@ -28,7 +28,20 @@ export type WsServer = {
   hear?: [Uid, string, string];
   shellLatency?: number | bigint;
   pong?: number | bigint;
+  fileOffer?: FileMeta;
+  fileChunk?: [number, number, Uint8Array];  // [fileId, chunkIdx, data]
+  fileDone?: [number, boolean];              // [fileId, success]
   error?: string;
+};
+
+/** Metadata about a file transfer. */
+export type FileMeta = {
+  id: number;
+  name: string;
+  size: number;
+  mime: string | null;
+  uploader: number;
+  uploaderName: string;
 };
 
 /** Client message type, see the Rust version. */
@@ -44,4 +57,8 @@ export type WsClient = {
   subscribe?: [Sid, number];
   chat?: string;
   ping?: bigint;
+  fileUpload?: [string, number, string | null];     // [name, size, mime?]
+  fileChunk?: [number, number, Uint8Array];          // [fileId, chunkIdx, data]
+  fileFinished?: [number, boolean];                  // [fileId, success]
+  fileDownload?: [number];                           // [fileId]
 };

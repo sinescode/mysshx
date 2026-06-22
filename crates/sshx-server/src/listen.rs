@@ -55,15 +55,6 @@ where
             }
         },
     );
-    // Apply rate limiting: max 100 requests per second per worker.
-    // Configurable via SSHX_RATE_LIMIT env var or defaults to 100/s.
-    let rate_per_sec = std::env::var("SSHX_RATE_LIMIT")
-        .ok()
-        .and_then(|v| v.parse::<u64>().ok())
-        .unwrap_or(100);
-    let rate_limit = tower::limit::RateLimitLayer::new(rate_per_sec, std::time::Duration::from_secs(1));
-    let svc = rate_limit.layer(svc);
-
     let make_svc = Shared::new(svc);
 
     axum::serve(listener, make_svc)
